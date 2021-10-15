@@ -14,7 +14,9 @@ fi
 
 exit_if_no_permissions
 
-PARSED=$(getopt --options=lho: --longoptions=help,output: --name "$@" -- "$@")
+isworker=
+
+PARSED=$(getopt --options=lho:w --longoptions=help,output:worker-only --name "$@" -- "$@")
 eval set -- "$PARSED"
 while true; do
     case "$1" in
@@ -25,7 +27,13 @@ while true; do
             echo
             echo "Options:"
             echo " -h, --help          Show this help"
+            echo " -w, --worker-only   Start only worker services"
             exit 0
+            ;;
+        -w|--worker-only)
+            isworker="true"
+            shift
+            break
             ;;
         --)
             shift
@@ -38,10 +46,25 @@ while true; do
 done
 
 
+if [ ! -z "$isworker" ]
+then
+    set_worker_only
+else
+    unset_worker_only
+fi
+
+# Rerun configure hook
+run_with_sudo snap set ${SNAP_NAME} isworker="$isworker"
+
+
 if ! run_with_sudo snap start ${SNAP_NAME} --enable
 then
     echo 'Failed to start microk8s services. Check snapd logs with "journalctl -u snapd.service"'
     exit 1
+elif is_worker_only
+then
+    # Node started as worker but not yet clustered, there is no point to wait_for_node now
+    exit 0
 else
     start_all_containers
     if run_with_sudo test -e ${SNAP_DATA}/var/lock/stopped.lock

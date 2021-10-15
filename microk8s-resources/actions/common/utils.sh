@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+source ${SNAP}/actions/common/env.sh
+
 exit_if_no_permissions() {
   # test if we can access the default kubeconfig
   if [ ! -r $SNAP_DATA/credentials/client.config ]; then
@@ -703,4 +705,23 @@ mark_boot_time() {
   # place the current time in the "$1"/last-start-date file
   now=$(date +%s)
   echo "$now" > "$1"/last-start-date
+}
+
+is_worker_only() {
+  if [ -e "$IS_WORKER_ONLY_LOCK" ]; then
+    return 0
+  fi
+  return 1
+}
+
+set_worker_only() {
+  touch "$IS_WORKER_ONLY_LOCK"
+}
+
+# Use unset_worker_only with caution, only start should be allowed to
+# do so. This will remove the lock which signals this is a worker-only
+# in the cluster.
+unset_worker_only() {
+  rm -f "$IS_WORKER_ONLY_LOCK" &> /dev/null || true
+  return 0
 }
