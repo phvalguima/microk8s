@@ -5,18 +5,12 @@ set -eu
 export PATH="$SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$PATH"
 source $SNAP/actions/common/utils.sh
 
-if [ -e ${SNAP_DATA}/var/lock/clustered.lock ]
-then
-    echo "This MicroK8s deployment is acting as a node in a cluster."
-    echo "Use 'snap start microk8s' to start services on this node."
-    exit 0
-fi
-
 exit_if_no_permissions
 
-isworker=
+# Assume we will start as a worker node, unless stated otherwise
+isworker="true"
 
-PARSED=$(getopt --options=lho:w --longoptions=help,output:worker-only --name "$@" -- "$@")
+PARSED=$(getopt --options=lho:a --longoptions=help,output:all --name "$@" -- "$@")
 eval set -- "$PARSED"
 while true; do
     case "$1" in
@@ -27,11 +21,16 @@ while true; do
             echo
             echo "Options:"
             echo " -h, --help          Show this help"
-            echo " -w, --worker-only   Start only worker services"
+            echo " -a, --all           Start all the services, including kubernetes API"
             exit 0
             ;;
         -w|--worker-only)
             isworker="true"
+            shift
+            break
+            ;;
+        -a|--all)
+            isworker=
             shift
             break
             ;;
