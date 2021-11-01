@@ -123,3 +123,9 @@ else
 fi
 mkdir -p "$SNAP_DATA/opt/cni/bin/"
 cp -R "$SNAP"/opt/cni/bin/* "$SNAP_DATA"/opt/cni/bin/
+
+# Try create var lock folder
+mkdir -p ${SNAP_DATA}/var/lock
+# Set the unit to run as worker node to start
+# user should run "microk8s start" without -w to reset as leader
+touch $IS_WORKER_ONLY_LOCK
